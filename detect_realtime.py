@@ -3,6 +3,8 @@ import torch.nn as nn
 from torchvision import models
 import cv2
 from collections import deque
+import winsound
+import threading
 
 # ==================== MODEL DEFINITION ====================
 class CNN_LSTM_Violence(nn.Module):
@@ -52,6 +54,13 @@ print("Model loaded!\n")
 
 # Frame buffer
 frame_buffer = deque(maxlen=SEQUENCE_LENGTH)
+alert_playing = False
+
+def play_alert():
+    global alert_playing
+    alert_playing = True
+    winsound.Beep(1000, 1000)
+    alert_playing = False
 
 # Normalization (ImageNet)
 mean = torch.tensor([0.485, 0.456, 0.406]).view(3, 1, 1)
@@ -98,6 +107,8 @@ while True:
         status = "DANGER"
         color = (0, 0, 255)  # Red
         cv2.rectangle(frame, (0, 0), (frame.shape[1], frame.shape[0]), color, 15)
+        if not alert_playing:
+            threading.Thread(target=play_alert, daemon=True).start()
     elif violence_prob >= WARNING_THRESHOLD:
         label = "Suspicious Activity"
         status = "WARNING"
