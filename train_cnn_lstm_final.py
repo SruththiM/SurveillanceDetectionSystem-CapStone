@@ -6,6 +6,7 @@ from torchvision import models
 import cv2
 import os
 import numpy as np
+from quantum_model import CNN_LSTM_QNN_Violence
 
 
 class ViolenceVideoDataset(Dataset):
@@ -72,47 +73,6 @@ class ViolenceVideoDataset(Dataset):
         return torch.stack(frames[:self.sequence_length])
 
 
-class CNN_LSTM_Violence(nn.Module):
-    def __init__(self, num_classes=2, hidden_size=256, num_layers=2):
-        super(CNN_LSTM_Violence, self).__init__()
-        
-        resnet = models.resnet18(weights='IMAGENET1K_V1')
-        self.cnn = nn.Sequential(*list(resnet.children())[:-1])
-        
-        
-        for param in list(self.cnn.parameters())[:-10]:
-            param.requires_grad = False
-        
-        self.lstm = nn.LSTM(
-            input_size=512,
-            hidden_size=hidden_size,
-            num_layers=num_layers,
-            batch_first=True,
-            dropout=0.3 if num_layers > 1 else 0
-        )
-        
-        self.fc = nn.Sequential(
-            nn.Linear(hidden_size, 128),
-            nn.ReLU(),
-            nn.Dropout(0.5),
-            nn.Linear(128, num_classes)
-        )
-    
-    def forward(self, x):
-        batch_size, seq_len, c, h, w = x.size()
-        cnn_out = []
-        
-        for t in range(seq_len):
-            features = self.cnn(x[:, t, :, :, :])
-            features = features.view(batch_size, -1)
-            cnn_out.append(features)
-        
-        cnn_out = torch.stack(cnn_out, dim=1)
-        lstm_out, _ = self.lstm(cnn_out)
-        out = self.fc(lstm_out[:, -1, :])
-        
-        return out
-
 
 if __name__ == "__main__":
     
@@ -130,7 +90,7 @@ if __name__ == "__main__":
     
     print(f"Train: {train_size} | Val: {val_size}\n")
     
-    model = CNN_LSTM_Violence().to(device)
+    model = CNN_LSTM_QNN_Violence().to(device)
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=0.0001)
     
@@ -186,7 +146,7 @@ if __name__ == "__main__":
         if val_acc > best_acc:
             best_acc = val_acc
             os.makedirs('checkpoints', exist_ok=True)
-            torch.save(model.state_dict(), 'checkpoints/cnn_lstm_violence.pth')
+            torch.save(model.state_dict(), 'checkpoints/cnn_lstm_qnn_violence.pth')
             print(f"*** Model Saved! Best Val Acc: {best_acc:.2f}% ***\n")
     
     print(f"Training Complete! Best Accuracy: {best_acc:.2f}%")

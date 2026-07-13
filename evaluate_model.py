@@ -6,6 +6,7 @@ import cv2
 import os
 import numpy as np
 from sklearn.metrics import precision_score, recall_score, f1_score, confusion_matrix, classification_report
+from quantum_model import CNN_LSTM_QNN_Violence
 
 # ==================== VIDEO DATASET ====================
 class ViolenceVideoDataset(Dataset):
@@ -68,34 +69,6 @@ class ViolenceVideoDataset(Dataset):
         
         return torch.stack(frames[:self.sequence_length])
 
-# ==================== MODEL DEFINITION ====================
-class CNN_LSTM_Violence(nn.Module):
-    def __init__(self, num_classes=2, hidden_size=256, num_layers=2):
-        super(CNN_LSTM_Violence, self).__init__()
-        resnet = models.resnet18(weights='IMAGENET1K_V1')
-        self.cnn = nn.Sequential(*list(resnet.children())[:-1])
-        
-        for param in list(self.cnn.parameters())[:-10]:
-            param.requires_grad = False
-        
-        self.lstm = nn.LSTM(512, hidden_size, num_layers, batch_first=True, dropout=0.3 if num_layers > 1 else 0)
-        self.fc = nn.Sequential(
-            nn.Linear(hidden_size, 128),
-            nn.ReLU(),
-            nn.Dropout(0.5),
-            nn.Linear(128, num_classes)
-        )
-    
-    def forward(self, x):
-        batch_size, seq_len, c, h, w = x.size()
-        cnn_out = []
-        for t in range(seq_len):
-            features = self.cnn(x[:, t, :, :, :]).view(batch_size, -1)
-            cnn_out.append(features)
-        cnn_out = torch.stack(cnn_out, dim=1)
-        lstm_out, _ = self.lstm(cnn_out)
-        return self.fc(lstm_out[:, -1, :])
-
 # ==================== EVALUATION ====================
 def evaluate_model(model, dataloader, device, threshold=0.5):
     model.eval()
@@ -139,8 +112,8 @@ if __name__ == "__main__":
     
     # Load model
     print("Loading model...")
-    model = CNN_LSTM_Violence().to(device)
-    model.load_state_dict(torch.load('checkpoints/cnn_lstm_violence.pth', map_location=device))
+    model = CNN_LSTM_QNN_Violence().to(device)
+    model.load_state_dict(torch.load('checkpoints/cnn_lstm_qnn_violence.pth', map_location=device))
     print("Model loaded!\n")
     
     # Evaluate with different thresholds

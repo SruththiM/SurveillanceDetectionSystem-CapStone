@@ -9,35 +9,8 @@ import os
 from datetime import datetime
 import smtplib
 from email.message import EmailMessage
+from quantum_model import CNN_LSTM_QNN_Violence
 
-
-class CNN_LSTM_Violence(nn.Module):
-    def __init__(self, num_classes=2, hidden_size=256, num_layers=2):
-        super(CNN_LSTM_Violence, self).__init__()
-        resnet = models.resnet18(weights='IMAGENET1K_V1')
-        self.cnn = nn.Sequential(*list(resnet.children())[:-1])
-        
-       
-        for param in self.cnn.parameters():
-            param.requires_grad = False
-        
-        self.lstm = nn.LSTM(512, hidden_size, num_layers, batch_first=True, dropout=0.3 if num_layers > 1 else 0)
-        self.fc = nn.Sequential(
-            nn.Linear(hidden_size, 128),
-            nn.ReLU(),
-            nn.Dropout(0.5),
-            nn.Linear(128, num_classes)
-        )
-    
-    def forward(self, x):
-        batch_size, seq_len, c, h, w = x.size()
-        cnn_out = []
-        for t in range(seq_len):
-            features = self.cnn(x[:, t, :, :, :]).view(batch_size, -1)
-            cnn_out.append(features)
-        cnn_out = torch.stack(cnn_out, dim=1)
-        lstm_out, _ = self.lstm(cnn_out)
-        return self.fc(lstm_out[:, -1, :])
 
 
 SEQUENCE_LENGTH = 8
@@ -49,8 +22,8 @@ WARNING_THRESHOLD = 0.75
 device = torch.device("cpu")
 
 print("Loading model...")
-model = CNN_LSTM_Violence(num_classes=2, hidden_size=256, num_layers=2).to(device)
-model.load_state_dict(torch.load('checkpoints/cnn_lstm_violence.pth', map_location=device))
+model = CNN_LSTM_QNN_Violence(num_classes=2, hidden_size=256, num_layers=2).to(device)
+model.load_state_dict(torch.load('checkpoints/cnn_lstm_qnn_violence.pth', map_location=device))
 model.eval()
 print("Model loaded!\n")
 
