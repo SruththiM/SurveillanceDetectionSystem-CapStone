@@ -31,5 +31,8 @@ Thumbs.db
 # Jupyter
 .ipynb_checkpoints/
 
+# Alerts (runtime screenshots)
+alerts/
+
 # Logs
 *.log
